@@ -1,0 +1,4 @@
+Google is restricting its Gemini AI chatbot from answering election-related questions in countries where voting is taking place this year, limiting users from receiving information about candidates, political parties and other elements of politics.
+“Out of an abundance of caution on such an important topic, we have begun to roll out restrictions on the types of election-related queries for which Gemini will return responses,” Google’s India team stated on the company’s site.
+‘We definitely messed up’: why did Google AI tool make offensive historical images?
+The company initially announced its...

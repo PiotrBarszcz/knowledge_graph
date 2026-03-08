@@ -1,0 +1,3 @@
+Google is restricting AI chatbot Gemini from answering questions about the global elections set to happen this year, the Alphabet-owned firm (GOOGL.O), opens new tab said on Tuesday, as it looks to avoid potential missteps in the deployment of the technology.
+The update comes at a time when advancements in generative AI, including image and video generation, have fanned concerns of misinformation and fake news among the public, prompting governments to regulate the technology.
+When asked about elections such as the upcoming U.S. presidential match-up between Joe Biden and Donald Trump, Gemini responds with...

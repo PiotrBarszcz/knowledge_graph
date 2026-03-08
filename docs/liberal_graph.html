@@ -1,0 +1,989 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 900px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="$31 trillion">$31 trillion</option>
+                                
+                                    <option value="america's national debt">america's national debt</option>
+                                
+                                    <option value="covid-19 pandemic">covid-19 pandemic</option>
+                                
+                                    <option value="2022">2022</option>
+                                
+                                    <option value="confiscated firearms">confiscated firearms</option>
+                                
+                                    <option value="firearms">firearms</option>
+                                
+                                    <option value="transportation security administration officers">transportation security administration officers</option>
+                                
+                                    <option value="2024 presidential candidate">2024 presidential candidate</option>
+                                
+                                    <option value="former president trump">former president trump</option>
+                                
+                                    <option value="jan. 6 insurrection">jan. 6 insurrection</option>
+                                
+                                    <option value="office of the presidency">office of the presidency</option>
+                                
+                                    <option value="absolutely, this bill should not pass">absolutely, this bill should not pass</option>
+                                
+                                    <option value="elon musk">elon musk</option>
+                                
+                                    <option value="goldman">goldman</option>
+                                
+                                    <option value="house rs on government funding">house rs on government funding</option>
+                                
+                                    <option value="mar-a-lago">mar-a-lago</option>
+                                
+                                    <option value="mike johnson's continuing resolution to keep the government open">mike johnson's continuing resolution to keep the government open</option>
+                                
+                                    <option value="musk">musk</option>
+                                
+                                    <option value="trump">trump</option>
+                                
+                                    <option value="administration">administration</option>
+                                
+                                    <option value="biden's administration">biden's administration</option>
+                                
+                                    <option value="gestapo">gestapo</option>
+                                
+                                    <option value="afghan government">afghan government</option>
+                                
+                                    <option value="biden-harris administration">biden-harris administration</option>
+                                
+                                    <option value="collapsing">collapsing</option>
+                                
+                                    <option value="taliban takeover of afghanistan">taliban takeover of afghanistan</option>
+                                
+                                    <option value="afghan military">afghan military</option>
+                                
+                                    <option value="air defense identification zone">air defense identification zone</option>
+                                
+                                    <option value="american f-16 warplanes">american f-16 warplanes</option>
+                                
+                                    <option value="air traffic controllers">air traffic controllers</option>
+                                
+                                    <option value="serious health issues and disabilities">serious health issues and disabilities</option>
+                                
+                                    <option value="airport checkpoints">airport checkpoints</option>
+                                
+                                    <option value="airport passengers">airport passengers</option>
+                                
+                                    <option value="alive (at the time of reporting)">alive (at the time of reporting)</option>
+                                
+                                    <option value="dead">dead</option>
+                                
+                                    <option value="east azerbaijan governor">east azerbaijan governor</option>
+                                
+                                    <option value="allegations of bribery against the company and its associates, including hunter biden and devon archer.">allegations of bribery against the company and its associates, including hunter biden and devon archer.</option>
+                                
+                                    <option value="burisma">burisma</option>
+                                
+                                    <option value="hunter biden">hunter biden</option>
+                                
+                                    <option value="growing economic uncertainty">growing economic uncertainty</option>
+                                
+                                    <option value="historically high inflation">historically high inflation</option>
+                                
+                                    <option value="rising interest rates">rising interest rates</option>
+                                
+                                    <option value="russian aircraft">russian aircraft</option>
+                                
+                                    <option value="appointment of a special master">appointment of a special master</option>
+                                
+                                    <option value="classified documents">classified documents</option>
+                                
+                                    <option value="justice department">justice department</option>
+                                
+                                    <option value="assault weapons">assault weapons</option>
+                                
+                                    <option value="california">california</option>
+                                
+                                    <option value="failed experiment">failed experiment</option>
+                                
+                                    <option value="authorities">authorities</option>
+                                
+                                    <option value="president joe biden">president joe biden</option>
+                                
+                                    <option value="shifting and at times contradictory information">shifting and at times contradictory information</option>
+                                
+                                    <option value="texas school shooting">texas school shooting</option>
+                                
+                                    <option value="average global temperature">average global temperature</option>
+                                
+                                    <option value="global temperature">global temperature</option>
+                                
+                                    <option value="hottest global temperature ever recorded">hottest global temperature ever recorded</option>
+                                
+                                    <option value="may well see a few even higher records this year">may well see a few even higher records this year</option>
+                                
+                                    <option value="previous record">previous record</option>
+                                
+                                    <option value="world">world</option>
+                                
+                                    <option value="barack obama">barack obama</option>
+                                
+                                    <option value="hollywood's brightest stars">hollywood's brightest stars</option>
+                                
+                                    <option value="joe biden">joe biden</option>
+                                
+                                    <option value="battle">battle</option>
+                                
+                                    <option value="cdc guidelines">cdc guidelines</option>
+                                
+                                    <option value="cdc">cdc</option>
+                                
+                                    <option value="benny gantz">benny gantz</option>
+                                
+                                    <option value="israel">israel</option>
+                                
+                                    <option value="israel's supreme court">israel's supreme court</option>
+                                
+                                    <option value="leave the emergency unity government">leave the emergency unity government</option>
+                                
+                                    <option value="biden administration">biden administration</option>
+                                
+                                    <option value="court latino voters in crucial battleground states">court latino voters in crucial battleground states</option>
+                                
+                                    <option value="democratic lawmakers">democratic lawmakers</option>
+                                
+                                    <option value="deterrence plus diplomacy">deterrence plus diplomacy</option>
+                                
+                                    <option value="european allies">european allies</option>
+                                
+                                    <option value="executive action">executive action</option>
+                                
+                                    <option value="framing it as 'new action to keep families together'">framing it as 'new action to keep families together'</option>
+                                
+                                    <option value="invited to the...">invited to the...</option>
+                                
+                                    <option value="lawmakers">lawmakers</option>
+                                
+                                    <option value="moscow">moscow</option>
+                                
+                                    <option value="nato">nato</option>
+                                
+                                    <option value="protection from deportation">protection from deportation</option>
+                                
+                                    <option value="russia">russia</option>
+                                
+                                    <option value="strategic failure">strategic failure</option>
+                                
+                                    <option value="ukraine crisis">ukraine crisis</option>
+                                
+                                    <option value="undocumented spouses of american citizens">undocumented spouses of american citizens</option>
+                                
+                                    <option value="united states">united states</option>
+                                
+                                    <option value="biden administration's public transportation mask mandate">biden administration's public transportation mask mandate</option>
+                                
+                                    <option value="older adults, the ill and the immunocompromised">older adults, the ill and the immunocompromised</option>
+                                
+                                    <option value="wearing a mask on long flights">wearing a mask on long flights</option>
+                                
+                                    <option value="biden administration's student loan forgiveness plan">biden administration's student loan forgiveness plan</option>
+                                
+                                    <option value="student loan repayments">student loan repayments</option>
+                                
+                                    <option value="contempt">contempt</option>
+                                
+                                    <option value="gestapo administration">gestapo administration</option>
+                                
+                                    <option value="information and opportunity to plan for the collapse of afghan government">information and opportunity to plan for the collapse of afghan government</option>
+                                
+                                    <option value="safely evacuate u.s. personnel">safely evacuate u.s. personnel</option>
+                                
+                                    <option value="devon archer">devon archer</option>
+                                
+                                    <option value="candidates">candidates</option>
+                                
+                                    <option value="election-related queries">election-related queries</option>
+                                
+                                    <option value="gemini ai chatbot">gemini ai chatbot</option>
+                                
+                                    <option value="child care programs">child care programs</option>
+                                
+                                    <option value="churches and other 'communities of faith'">churches and other 'communities of faith'</option>
+                                
+                                    <option value="employers">employers</option>
+                                
+                                    <option value="mass transit administrators">mass transit administrators</option>
+                                
+                                    <option value="recommendations">recommendations</option>
+                                
+                                    <option value="reopening economy">reopening economy</option>
+                                
+                                    <option value="restaurants and bars">restaurants and bars</option>
+                                
+                                    <option value="schools and day camps">schools and day camps</option>
+                                
+                                    <option value="trump, president">trump, president</option>
+                                
+                                    <option value="vulnerable workers">vulnerable workers</option>
+                                
+                                    <option value="china's hostile reaction to pelosi's taiwan visit">china's hostile reaction to pelosi's taiwan visit</option>
+                                
+                                    <option value="worsening of relations">worsening of relations</option>
+                                
+                                    <option value="chinese political spam network">chinese political spam network</option>
+                                
+                                    <option value="spamouflage">spamouflage</option>
+                                
+                                    <option value="fbi agents and justice department attorneys">fbi agents and justice department attorneys</option>
+                                
+                                    <option value="former president donald trump's mar-a-lago estate">former president donald trump's mar-a-lago estate</option>
+                                
+                                    <option value="classified material">classified material</option>
+                                
+                                    <option value="potential vulnerabilities of the united states and its allies to military...">potential vulnerabilities of the united states and its allies to military...</option>
+                                
+                                    <option value="united states nuclear programs">united states nuclear programs</option>
+                                
+                                    <option value="loaded firearms">loaded firearms</option>
+                                
+                                    <option value="maximum civil penalty for a firearms violation">maximum civil penalty for a firearms violation</option>
+                                
+                                    <option value="conservative attorneys">conservative attorneys</option>
+                                
+                                    <option value="democrats">democrats</option>
+                                
+                                    <option value="justice sam alito">justice sam alito</option>
+                                
+                                    <option value="constitutional and political crisis">constitutional and political crisis</option>
+                                
+                                    <option value="court's ability to review government decisions">court's ability to review government decisions</option>
+                                
+                                    <option value="dr. anthony fauci">dr. anthony fauci</option>
+                                
+                                    <option value="republican lawmakers">republican lawmakers</option>
+                                
+                                    <option value="republican-led subcommittee">republican-led subcommittee</option>
+                                
+                                    <option value="trusted...">trusted...</option>
+                                
+                                    <option value="u.s.-funded research in china">u.s.-funded research in china</option>
+                                
+                                    <option value="foreign minister hossein amir-abdollahian">foreign minister hossein amir-abdollahian</option>
+                                
+                                    <option value="iranian president ebrahim raisi">iranian president ebrahim raisi</option>
+                                
+                                    <option value="federalist society">federalist society</option>
+                                
+                                    <option value="progressive movement">progressive movement</option>
+                                
+                                    <option value="united states' response to the covid-19">united states' response to the covid-19</option>
+                                
+                                    <option value="democrats no longer have one-party rule in washington">democrats no longer have one-party rule in washington</option>
+                                
+                                    <option value="house republicans">house republicans</option>
+                                
+                                    <option value="dhs">dhs</option>
+                                
+                                    <option value="disinformation">disinformation</option>
+                                
+                                    <option value="disinformation governance board">disinformation governance board</option>
+                                
+                                    <option value="influence">influence</option>
+                                
+                                    <option value="influence tech platforms">influence tech platforms</option>
+                                
+                                    <option value="misinformation">misinformation</option>
+                                
+                                    <option value="tech platforms">tech platforms</option>
+                                
+                                    <option value="diversity hiring initiatives">diversity hiring initiatives</option>
+                                
+                                    <option value="plane-helicopter collision">plane-helicopter collision</option>
+                                
+                                    <option value="dmitry peskov">dmitry peskov</option>
+                                
+                                    <option value="russia's state-run media">russia's state-run media</option>
+                                
+                                    <option value="u.s. intelligence agencies">u.s. intelligence agencies</option>
+                                
+                                    <option value="vladimir putin">vladimir putin</option>
+                                
+                                    <option value="donald trump">donald trump</option>
+                                
+                                    <option value="facebook">facebook</option>
+                                
+                                    <option value="google">google</option>
+                                
+                                    <option value="the trump 'attempted assassination photo'">the trump 'attempted assassination photo'</option>
+                                
+                                    <option value="education secretary miguel cardona">education secretary miguel cardona</option>
+                                
+                                    <option value="election interference case">election interference case</option>
+                                
+                                    <option value="former president donald trump">former president donald trump</option>
+                                
+                                    <option value="elements of politics">elements of politics</option>
+                                
+                                    <option value="political parties">political parties</option>
+                                
+                                    <option value="mike johnson">mike johnson</option>
+                                
+                                    <option value="president-elect donald trump">president-elect donald trump</option>
+                                
+                                    <option value="rep. daniel goldman">rep. daniel goldman</option>
+                                
+                                    <option value="emergency unity government">emergency unity government</option>
+                                
+                                    <option value="oct. 7 attack">oct. 7 attack</option>
+                                
+                                    <option value="excessive heat">excessive heat</option>
+                                
+                                    <option value="leading weather-related killer">leading weather-related killer</option>
+                                
+                                    <option value="fair, impartial and independent manner">fair, impartial and independent manner</option>
+                                
+                                    <option value="fani t. willis">fani t. willis</option>
+                                
+                                    <option value="outside prosecutor">outside prosecutor</option>
+                                
+                                    <option value="farmworkers">farmworkers</option>
+                                
+                                    <option value="delivery and construction workers">delivery and construction workers</option>
+                                
+                                    <option value="former democratic governor terry mcauliffe">former democratic governor terry mcauliffe</option>
+                                
+                                    <option value="republican glenn youngkin">republican glenn youngkin</option>
+                                
+                                    <option value="hamas' attacks in israel last month">hamas' attacks in israel last month</option>
+                                
+                                    <option value="presence of photographers working for the associated press and reuters at breached border fence between gaza and israel early in the early morning of oct. 7">presence of photographers working for the associated press and reuters at breached border fence between gaza and israel early in the early morning of oct. 7</option>
+                                
+                                    <option value="white house contest">white house contest</option>
+                                
+                                    <option value="honesty">honesty</option>
+                                
+                                    <option value="tony bobulinski">tony bobulinski</option>
+                                
+                                    <option value="house oversight committee">house oversight committee</option>
+                                
+                                    <option value="representative james comer">representative james comer</option>
+                                
+                                    <option value="house oversight committee chair james comer">house oversight committee chair james comer</option>
+                                
+                                    <option value="treasury department">treasury department</option>
+                                
+                                    <option value="hunter biden's business deals">hunter biden's business deals</option>
+                                
+                                    <option value="infrastructure investment and jobs act">infrastructure investment and jobs act</option>
+                                
+                                    <option value="legislation">legislation</option>
+                                
+                                    <option value="intelligence official">intelligence official</option>
+                                
+                                    <option value="whistleblower">whistleblower</option>
+                                
+                                    <option value="israel's prime minister benjamin netanyahu">israel's prime minister benjamin netanyahu</option>
+                                
+                                    <option value="judicial overhaul">judicial overhaul</option>
+                                
+                                    <option value="lebanon">lebanon</option>
+                                
+                                    <option value="netanyahu government's judicial overhaul">netanyahu government's judicial overhaul</option>
+                                
+                                    <option value="strong reaction">strong reaction</option>
+                                
+                                    <option value="war in gaza">war in gaza</option>
+                                
+                                    <option value="joe manchin">joe manchin</option>
+                                
+                                    <option value="senate republicans">senate republicans</option>
+                                
+                                    <option value="slimmed-down elections compromise">slimmed-down elections compromise</option>
+                                
+                                    <option value="law enforcement response">law enforcement response</option>
+                                
+                                    <option value="memorial to the 19 students">memorial to the 19 students</option>
+                                
+                                    <option value="leaked draft supreme court opinion">leaked draft supreme court opinion</option>
+                                
+                                    <option value="people">people</option>
+                                
+                                    <option value="supreme court">supreme court</option>
+                                
+                                    <option value="left-wing extremists">left-wing extremists</option>
+                                
+                                    <option value="tesla gigafactory">tesla gigafactory</option>
+                                
+                                    <option value="mark zaid">mark zaid</option>
+                                
+                                    <option value="meta">meta</option>
+                                
+                                    <option value="michael atkinson">michael atkinson</option>
+                                
+                                    <option value="second whistleblower">second whistleblower</option>
+                                
+                                    <option value="navalny">navalny</option>
+                                
+                                    <option value="new york's requirement that health care workers be vaccinated against the coronavirus">new york's requirement that health care workers be vaccinated against the coronavirus</option>
+                                
+                                    <option value="religious freedom">religious freedom</option>
+                                
+                                    <option value="religious objections">religious objections</option>
+                                
+                                    <option value="supreme court's commitment to religious liberty">supreme court's commitment to religious liberty</option>
+                                
+                                    <option value="pelosi's taiwan visit">pelosi's taiwan visit</option>
+                                
+                                    <option value="hostile reaction from china's communist government">hostile reaction from china's communist government</option>
+                                
+                                    <option value="queer activists">queer activists</option>
+                                
+                                    <option value="rights to same-sex marriage and consensual sex are also...">rights to same-sex marriage and consensual sex are also...</option>
+                                
+                                    <option value="roe v. wade">roe v. wade</option>
+                                
+                                    <option value="safe, accessible abortion care for all">safe, accessible abortion care for all</option>
+                                
+                                    <option value="washington, d.c.">washington, d.c.</option>
+                                
+                                    <option value="president biden's">president biden's</option>
+                                
+                                    <option value="domestic agenda">domestic agenda</option>
+                                
+                                    <option value="federal safety standard">federal safety standard</option>
+                                
+                                    <option value="pro-kremlin views">pro-kremlin views</option>
+                                
+                                    <option value="production">production</option>
+                                
+                                    <option value="project veritas">project veritas</option>
+                                
+                                    <option value="twitter">twitter</option>
+                                
+                                    <option value="twitter's policies">twitter's policies</option>
+                                
+                                    <option value="video">video</option>
+                                
+                                    <option value="republicans appeared to sweep the other statewide races">republicans appeared to sweep the other statewide races</option>
+                                
+                                    <option value="virginia voters">virginia voters</option>
+                                
+                                    <option value="winsome sears">winsome sears</option>
+                                
+                                    <option value="rt (formerly known as russia today)">rt (formerly known as russia today)</option>
+                                
+                                    <option value="senate minority leader mitch mcconnell ">senate minority leader mitch mcconnell </option>
+                                
+                                    <option value="voted yes">voted yes</option>
+                                
+                                    <option value="trump's conspiratorial messages and insults based on race">trump's conspiratorial messages and insults based on race</option>
+                                
+                                    <option value="unproductive">unproductive</option>
+                                
+                                    <option value="trump's inability to stay on message and stay away from conspiracy theories">trump's inability to stay on message and stay away from conspiracy theories</option>
+                                
+                                    <option value="targeting momentum of vice president kamala harris">targeting momentum of vice president kamala harris</option>
+                                
+                                    <option value="u.s. evacuations from afghanistan in 2021">u.s. evacuations from afghanistan in 2021</option>
+                                
+                                    <option value="earlier evacuations">earlier evacuations</option>
+                                
+                                    <option value="washington">washington</option>
+                                
+                                    <option value="infrastructure">infrastructure</option>
+                                
+                                    <option value="white house">white house</option>
+                                
+                                    <option value="summoning...">summoning...</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"group": 1, "id": "$31 trillion", "label": "$31 trillion", "shape": "dot", "size": 2}, {"group": 1, "id": "america\u0027s national debt", "label": "america\u0027s national debt", "shape": "dot", "size": 5}, {"group": 1, "id": "covid-19 pandemic", "label": "covid-19 pandemic", "shape": "dot", "size": 11}, {"group": 2, "id": "2022", "label": "2022", "shape": "dot", "size": 3}, {"group": 2, "id": "confiscated firearms", "label": "confiscated firearms", "shape": "dot", "size": 7}, {"group": 2, "id": "firearms", "label": "firearms", "shape": "dot", "size": 7}, {"group": 2, "id": "transportation security administration officers", "label": "transportation security administration officers", "shape": "dot", "size": 7}, {"group": 3, "id": "2024 presidential candidate", "label": "2024 presidential candidate", "shape": "dot", "size": 3}, {"group": 3, "id": "former president trump", "label": "former president trump", "shape": "dot", "size": 3}, {"group": 3, "id": "jan. 6 insurrection", "label": "jan. 6 insurrection", "shape": "dot", "size": 3}, {"group": 3, "id": "office of the presidency", "label": "office of the presidency", "shape": "dot", "size": 3}, {"group": 4, "id": "absolutely, this bill should not pass", "label": "absolutely, this bill should not pass", "shape": "dot", "size": 7}, {"group": 4, "id": "elon musk", "label": "elon musk", "shape": "dot", "size": 10}, {"group": 4, "id": "goldman", "label": "goldman", "shape": "dot", "size": 10}, {"group": 4, "id": "house rs on government funding", "label": "house rs on government funding", "shape": "dot", "size": 10}, {"group": 4, "id": "mar-a-lago", "label": "mar-a-lago", "shape": "dot", "size": 10}, {"group": 4, "id": "mike johnson\u0027s continuing resolution to keep the government open", "label": "mike johnson\u0027s continuing resolution to keep the government open", "shape": "dot", "size": 10}, {"group": 4, "id": "musk", "label": "musk", "shape": "dot", "size": 10}, {"group": 4, "id": "trump", "label": "trump", "shape": "dot", "size": 13}, {"group": 4, "id": "administration", "label": "administration", "shape": "dot", "size": 2}, {"group": 4, "id": "biden\u0027s administration", "label": "biden\u0027s administration", "shape": "dot", "size": 5}, {"group": 4, "id": "gestapo", "label": "gestapo", "shape": "dot", "size": 5}, {"group": 5, "id": "afghan government", "label": "afghan government", "shape": "dot", "size": 3}, {"group": 5, "id": "biden-harris administration", "label": "biden-harris administration", "shape": "dot", "size": 4}, {"group": 5, "id": "collapsing", "label": "collapsing", "shape": "dot", "size": 2}, {"group": 5, "id": "taliban takeover of afghanistan", "label": "taliban takeover of afghanistan", "shape": "dot", "size": 2}, {"group": 5, "id": "afghan military", "label": "afghan military", "shape": "dot", "size": 1}, {"group": 6, "id": "air defense identification zone", "label": "air defense identification zone", "shape": "dot", "size": 1}, {"group": 6, "id": "american f-16 warplanes", "label": "american f-16 warplanes", "shape": "dot", "size": 2}, {"group": 7, "id": "air traffic controllers", "label": "air traffic controllers", "shape": "dot", "size": 1}, {"group": 7, "id": "serious health issues and disabilities", "label": "serious health issues and disabilities", "shape": "dot", "size": 1}, {"group": 2, "id": "airport checkpoints", "label": "airport checkpoints", "shape": "dot", "size": 3}, {"group": 2, "id": "airport passengers", "label": "airport passengers", "shape": "dot", "size": 3}, {"group": 8, "id": "alive (at the time of reporting)", "label": "alive (at the time of reporting)", "shape": "dot", "size": 2}, {"group": 8, "id": "dead", "label": "dead", "shape": "dot", "size": 4}, {"group": 8, "id": "east azerbaijan governor", "label": "east azerbaijan governor", "shape": "dot", "size": 2}, {"group": 9, "id": "allegations of bribery against the company and its associates, including hunter biden and devon archer.", "label": "allegations of bribery against the company and its associates, including hunter biden and devon archer.", "shape": "dot", "size": 2}, {"group": 9, "id": "burisma", "label": "burisma", "shape": "dot", "size": 3}, {"group": 9, "id": "hunter biden", "label": "hunter biden", "shape": "dot", "size": 3}, {"group": 1, "id": "growing economic uncertainty", "label": "growing economic uncertainty", "shape": "dot", "size": 2}, {"group": 1, "id": "historically high inflation", "label": "historically high inflation", "shape": "dot", "size": 2}, {"group": 1, "id": "rising interest rates", "label": "rising interest rates", "shape": "dot", "size": 2}, {"group": 6, "id": "russian aircraft", "label": "russian aircraft", "shape": "dot", "size": 1}, {"group": 10, "id": "appointment of a special master", "label": "appointment of a special master", "shape": "dot", "size": 2}, {"group": 10, "id": "classified documents", "label": "classified documents", "shape": "dot", "size": 4}, {"group": 12, "id": "justice department", "label": "justice department", "shape": "dot", "size": 9}, {"group": 11, "id": "assault weapons", "label": "assault weapons", "shape": "dot", "size": 2}, {"group": 11, "id": "california", "label": "california", "shape": "dot", "size": 2}, {"group": 11, "id": "failed experiment", "label": "failed experiment", "shape": "dot", "size": 2}, {"group": 12, "id": "authorities", "label": "authorities", "shape": "dot", "size": 4}, {"group": 12, "id": "president joe biden", "label": "president joe biden", "shape": "dot", "size": 10}, {"group": 12, "id": "shifting and at times contradictory information", "label": "shifting and at times contradictory information", "shape": "dot", "size": 4}, {"group": 12, "id": "texas school shooting", "label": "texas school shooting", "shape": "dot", "size": 7}, {"group": 13, "id": "average global temperature", "label": "average global temperature", "shape": "dot", "size": 5}, {"group": 13, "id": "global temperature", "label": "global temperature", "shape": "dot", "size": 2}, {"group": 13, "id": "hottest global temperature ever recorded", "label": "hottest global temperature ever recorded", "shape": "dot", "size": 5}, {"group": 13, "id": "may well see a few even higher records this year", "label": "may well see a few even higher records this year", "shape": "dot", "size": 3}, {"group": 13, "id": "previous record", "label": "previous record", "shape": "dot", "size": 2}, {"group": 13, "id": "world", "label": "world", "shape": "dot", "size": 3}, {"group": 12, "id": "barack obama", "label": "barack obama", "shape": "dot", "size": 2}, {"group": 12, "id": "hollywood\u0027s brightest stars", "label": "hollywood\u0027s brightest stars", "shape": "dot", "size": 4}, {"group": 12, "id": "joe biden", "label": "joe biden", "shape": "dot", "size": 4}, {"group": 14, "id": "battle", "label": "battle", "shape": "dot", "size": 2}, {"group": 14, "id": "cdc guidelines", "label": "cdc guidelines", "shape": "dot", "size": 12}, {"group": 14, "id": "cdc", "label": "cdc", "shape": "dot", "size": 2}, {"group": 15, "id": "benny gantz", "label": "benny gantz", "shape": "dot", "size": 3}, {"group": 15, "id": "israel", "label": "israel", "shape": "dot", "size": 13}, {"group": 15, "id": "israel\u0027s supreme court", "label": "israel\u0027s supreme court", "shape": "dot", "size": 13}, {"group": 15, "id": "leave the emergency unity government", "label": "leave the emergency unity government", "shape": "dot", "size": 3}, {"group": 16, "id": "biden administration", "label": "biden administration", "shape": "dot", "size": 16}, {"group": 16, "id": "court latino voters in crucial battleground states", "label": "court latino voters in crucial battleground states", "shape": "dot", "size": 2}, {"group": 16, "id": "democratic lawmakers", "label": "democratic lawmakers", "shape": "dot", "size": 2}, {"group": 16, "id": "deterrence plus diplomacy", "label": "deterrence plus diplomacy", "shape": "dot", "size": 4}, {"group": 16, "id": "european allies", "label": "european allies", "shape": "dot", "size": 4}, {"group": 16, "id": "executive action", "label": "executive action", "shape": "dot", "size": 2}, {"group": 16, "id": "framing it as \u0027new action to keep families together\u0027", "label": "framing it as \u0027new action to keep families together\u0027", "shape": "dot", "size": 2}, {"group": 16, "id": "invited to the...", "label": "invited to the...", "shape": "dot", "size": 2}, {"group": 16, "id": "lawmakers", "label": "lawmakers", "shape": "dot", "size": 8}, {"group": 16, "id": "moscow", "label": "moscow", "shape": "dot", "size": 8}, {"group": 16, "id": "nato", "label": "nato", "shape": "dot", "size": 4}, {"group": 16, "id": "protection from deportation", "label": "protection from deportation", "shape": "dot", "size": 3}, {"group": 16, "id": "russia", "label": "russia", "shape": "dot", "size": 8}, {"group": 16, "id": "strategic failure", "label": "strategic failure", "shape": "dot", "size": 8}, {"group": 16, "id": "ukraine crisis", "label": "ukraine crisis", "shape": "dot", "size": 8}, {"group": 16, "id": "undocumented spouses of american citizens", "label": "undocumented spouses of american citizens", "shape": "dot", "size": 3}, {"group": 16, "id": "united states", "label": "united states", "shape": "dot", "size": 4}, {"group": 17, "id": "biden administration\u0027s public transportation mask mandate", "label": "biden administration\u0027s public transportation mask mandate", "shape": "dot", "size": 2}, {"group": 17, "id": "older adults, the ill and the immunocompromised", "label": "older adults, the ill and the immunocompromised", "shape": "dot", "size": 1}, {"group": 17, "id": "wearing a mask on long flights", "label": "wearing a mask on long flights", "shape": "dot", "size": 1}, {"group": 18, "id": "biden administration\u0027s student loan forgiveness plan", "label": "biden administration\u0027s student loan forgiveness plan", "shape": "dot", "size": 1}, {"group": 18, "id": "student loan repayments", "label": "student loan repayments", "shape": "dot", "size": 2}, {"group": 4, "id": "contempt", "label": "contempt", "shape": "dot", "size": 3}, {"group": 4, "id": "gestapo administration", "label": "gestapo administration", "shape": "dot", "size": 2}, {"group": 5, "id": "information and opportunity to plan for the collapse of afghan government", "label": "information and opportunity to plan for the collapse of afghan government", "shape": "dot", "size": 1}, {"group": 5, "id": "safely evacuate u.s. personnel", "label": "safely evacuate u.s. personnel", "shape": "dot", "size": 1}, {"group": 9, "id": "devon archer", "label": "devon archer", "shape": "dot", "size": 2}, {"group": 19, "id": "candidates", "label": "candidates", "shape": "dot", "size": 2}, {"group": 19, "id": "election-related queries", "label": "election-related queries", "shape": "dot", "size": 5}, {"group": 19, "id": "gemini ai chatbot", "label": "gemini ai chatbot", "shape": "dot", "size": 5}, {"group": 14, "id": "child care programs", "label": "child care programs", "shape": "dot", "size": 1}, {"group": 14, "id": "churches and other \u0027communities of faith\u0027", "label": "churches and other \u0027communities of faith\u0027", "shape": "dot", "size": 1}, {"group": 14, "id": "employers", "label": "employers", "shape": "dot", "size": 2}, {"group": 14, "id": "mass transit administrators", "label": "mass transit administrators", "shape": "dot", "size": 1}, {"group": 14, "id": "recommendations", "label": "recommendations", "shape": "dot", "size": 1}, {"group": 14, "id": "reopening economy", "label": "reopening economy", "shape": "dot", "size": 2}, {"group": 14, "id": "restaurants and bars", "label": "restaurants and bars", "shape": "dot", "size": 1}, {"group": 14, "id": "schools and day camps", "label": "schools and day camps", "shape": "dot", "size": 1}, {"group": 14, "id": "trump, president", "label": "trump, president", "shape": "dot", "size": 2}, {"group": 14, "id": "vulnerable workers", "label": "vulnerable workers", "shape": "dot", "size": 2}, {"group": 20, "id": "china\u0027s hostile reaction to pelosi\u0027s taiwan visit", "label": "china\u0027s hostile reaction to pelosi\u0027s taiwan visit", "shape": "dot", "size": 1}, {"group": 20, "id": "worsening of relations", "label": "worsening of relations", "shape": "dot", "size": 1}, {"group": 21, "id": "chinese political spam network", "label": "chinese political spam network", "shape": "dot", "size": 1}, {"group": 21, "id": "spamouflage", "label": "spamouflage", "shape": "dot", "size": 2}, {"group": 10, "id": "fbi agents and justice department attorneys", "label": "fbi agents and justice department attorneys", "shape": "dot", "size": 1}, {"group": 10, "id": "former president donald trump\u0027s mar-a-lago estate", "label": "former president donald trump\u0027s mar-a-lago estate", "shape": "dot", "size": 1}, {"group": 22, "id": "classified material", "label": "classified material", "shape": "dot", "size": 2}, {"group": 22, "id": "potential vulnerabilities of the united states and its allies to military...", "label": "potential vulnerabilities of the united states and its allies to military...", "shape": "dot", "size": 1}, {"group": 22, "id": "united states nuclear programs", "label": "united states nuclear programs", "shape": "dot", "size": 1}, {"group": 2, "id": "loaded firearms", "label": "loaded firearms", "shape": "dot", "size": 3}, {"group": 2, "id": "maximum civil penalty for a firearms violation", "label": "maximum civil penalty for a firearms violation", "shape": "dot", "size": 3}, {"group": 1, "id": "conservative attorneys", "label": "conservative attorneys", "shape": "dot", "size": 2}, {"group": 1, "id": "democrats", "label": "democrats", "shape": "dot", "size": 8}, {"group": 1, "id": "justice sam alito", "label": "justice sam alito", "shape": "dot", "size": 5}, {"group": 15, "id": "constitutional and political crisis", "label": "constitutional and political crisis", "shape": "dot", "size": 2}, {"group": 15, "id": "court\u0027s ability to review government decisions", "label": "court\u0027s ability to review government decisions", "shape": "dot", "size": 2}, {"group": 1, "id": "dr. anthony fauci", "label": "dr. anthony fauci", "shape": "dot", "size": 6}, {"group": 1, "id": "republican lawmakers", "label": "republican lawmakers", "shape": "dot", "size": 3}, {"group": 1, "id": "republican-led subcommittee", "label": "republican-led subcommittee", "shape": "dot", "size": 3}, {"group": 1, "id": "trusted...", "label": "trusted...", "shape": "dot", "size": 3}, {"group": 1, "id": "u.s.-funded research in china", "label": "u.s.-funded research in china", "shape": "dot", "size": 6}, {"group": 8, "id": "foreign minister hossein amir-abdollahian", "label": "foreign minister hossein amir-abdollahian", "shape": "dot", "size": 1}, {"group": 8, "id": "iranian president ebrahim raisi", "label": "iranian president ebrahim raisi", "shape": "dot", "size": 1}, {"group": 1, "id": "federalist society", "label": "federalist society", "shape": "dot", "size": 2}, {"group": 1, "id": "progressive movement", "label": "progressive movement", "shape": "dot", "size": 2}, {"group": 1, "id": "united states\u0027 response to the covid-19", "label": "united states\u0027 response to the covid-19", "shape": "dot", "size": 2}, {"group": 24, "id": "democrats no longer have one-party rule in washington", "label": "democrats no longer have one-party rule in washington", "shape": "dot", "size": 1}, {"group": 24, "id": "house republicans", "label": "house republicans", "shape": "dot", "size": 4}, {"group": 25, "id": "dhs", "label": "dhs", "shape": "dot", "size": 6}, {"group": 25, "id": "disinformation", "label": "disinformation", "shape": "dot", "size": 2}, {"group": 25, "id": "disinformation governance board", "label": "disinformation governance board", "shape": "dot", "size": 1}, {"group": 25, "id": "influence", "label": "influence", "shape": "dot", "size": 2}, {"group": 25, "id": "influence tech platforms", "label": "influence tech platforms", "shape": "dot", "size": 1}, {"group": 25, "id": "misinformation", "label": "misinformation", "shape": "dot", "size": 2}, {"group": 25, "id": "tech platforms", "label": "tech platforms", "shape": "dot", "size": 2}, {"group": 26, "id": "diversity hiring initiatives", "label": "diversity hiring initiatives", "shape": "dot", "size": 1}, {"group": 26, "id": "plane-helicopter collision", "label": "plane-helicopter collision", "shape": "dot", "size": 1}, {"group": 27, "id": "dmitry peskov", "label": "dmitry peskov", "shape": "dot", "size": 3}, {"group": 27, "id": "russia\u0027s state-run media", "label": "russia\u0027s state-run media", "shape": "dot", "size": 3}, {"group": 27, "id": "u.s. intelligence agencies", "label": "u.s. intelligence agencies", "shape": "dot", "size": 5}, {"group": 27, "id": "vladimir putin", "label": "vladimir putin", "shape": "dot", "size": 5}, {"group": 19, "id": "donald trump", "label": "donald trump", "shape": "dot", "size": 3}, {"group": 19, "id": "facebook", "label": "facebook", "shape": "dot", "size": 3}, {"group": 19, "id": "google", "label": "google", "shape": "dot", "size": 4}, {"group": 19, "id": "the trump \u0027attempted assassination photo\u0027", "label": "the trump \u0027attempted assassination photo\u0027", "shape": "dot", "size": 2}, {"group": 18, "id": "education secretary miguel cardona", "label": "education secretary miguel cardona", "shape": "dot", "size": 1}, {"group": 30, "id": "election interference case", "label": "election interference case", "shape": "dot", "size": 1}, {"group": 30, "id": "former president donald trump", "label": "former president donald trump", "shape": "dot", "size": 1}, {"group": 19, "id": "elements of politics", "label": "elements of politics", "shape": "dot", "size": 2}, {"group": 19, "id": "political parties", "label": "political parties", "shape": "dot", "size": 2}, {"group": 4, "id": "mike johnson", "label": "mike johnson", "shape": "dot", "size": 7}, {"group": 4, "id": "president-elect donald trump", "label": "president-elect donald trump", "shape": "dot", "size": 8}, {"group": 4, "id": "rep. daniel goldman", "label": "rep. daniel goldman", "shape": "dot", "size": 8}, {"group": 15, "id": "emergency unity government", "label": "emergency unity government", "shape": "dot", "size": 3}, {"group": 15, "id": "oct. 7 attack", "label": "oct. 7 attack", "shape": "dot", "size": 3}, {"group": 31, "id": "excessive heat", "label": "excessive heat", "shape": "dot", "size": 1}, {"group": 31, "id": "leading weather-related killer", "label": "leading weather-related killer", "shape": "dot", "size": 1}, {"group": 12, "id": "fair, impartial and independent manner", "label": "fair, impartial and independent manner", "shape": "dot", "size": 3}, {"group": 32, "id": "fani t. willis", "label": "fani t. willis", "shape": "dot", "size": 1}, {"group": 32, "id": "outside prosecutor", "label": "outside prosecutor", "shape": "dot", "size": 1}, {"group": 23, "id": "farmworkers", "label": "farmworkers", "shape": "dot", "size": 1}, {"group": 23, "id": "delivery and construction workers", "label": "delivery and construction workers", "shape": "dot", "size": 1}, {"group": 33, "id": "former democratic governor terry mcauliffe", "label": "former democratic governor terry mcauliffe", "shape": "dot", "size": 1}, {"group": 33, "id": "republican glenn youngkin", "label": "republican glenn youngkin", "shape": "dot", "size": 4}, {"group": 34, "id": "hamas\u0027 attacks in israel last month", "label": "hamas\u0027 attacks in israel last month", "shape": "dot", "size": 1}, {"group": 34, "id": "presence of photographers working for the associated press and reuters at breached border fence between gaza and israel early in the early morning of oct. 7", "label": "presence of photographers working for the associated press and reuters at breached border fence between gaza and israel early in the early morning of oct. 7", "shape": "dot", "size": 1}, {"group": 12, "id": "white house contest", "label": "white house contest", "shape": "dot", "size": 2}, {"group": 35, "id": "honesty", "label": "honesty", "shape": "dot", "size": 1}, {"group": 35, "id": "tony bobulinski", "label": "tony bobulinski", "shape": "dot", "size": 3}, {"group": 24, "id": "house oversight committee", "label": "house oversight committee", "shape": "dot", "size": 2}, {"group": 24, "id": "representative james comer", "label": "representative james comer", "shape": "dot", "size": 2}, {"group": 35, "id": "house oversight committee chair james comer", "label": "house oversight committee chair james comer", "shape": "dot", "size": 1}, {"group": 24, "id": "treasury department", "label": "treasury department", "shape": "dot", "size": 1}, {"group": 35, "id": "hunter biden\u0027s business deals", "label": "hunter biden\u0027s business deals", "shape": "dot", "size": 1}, {"group": 38, "id": "infrastructure investment and jobs act", "label": "infrastructure investment and jobs act", "shape": "dot", "size": 1}, {"group": 38, "id": "legislation", "label": "legislation", "shape": "dot", "size": 1}, {"group": 39, "id": "intelligence official", "label": "intelligence official", "shape": "dot", "size": 1}, {"group": 39, "id": "whistleblower", "label": "whistleblower", "shape": "dot", "size": 4}, {"group": 15, "id": "israel\u0027s prime minister benjamin netanyahu", "label": "israel\u0027s prime minister benjamin netanyahu", "shape": "dot", "size": 3}, {"group": 15, "id": "judicial overhaul", "label": "judicial overhaul", "shape": "dot", "size": 2}, {"group": 15, "id": "lebanon", "label": "lebanon", "shape": "dot", "size": 2}, {"group": 15, "id": "netanyahu government\u0027s judicial overhaul", "label": "netanyahu government\u0027s judicial overhaul", "shape": "dot", "size": 2}, {"group": 15, "id": "strong reaction", "label": "strong reaction", "shape": "dot", "size": 3}, {"group": 15, "id": "war in gaza", "label": "war in gaza", "shape": "dot", "size": 2}, {"group": 40, "id": "joe manchin", "label": "joe manchin", "shape": "dot", "size": 2}, {"group": 40, "id": "senate republicans", "label": "senate republicans", "shape": "dot", "size": 1}, {"group": 40, "id": "slimmed-down elections compromise", "label": "slimmed-down elections compromise", "shape": "dot", "size": 1}, {"group": 12, "id": "law enforcement response", "label": "law enforcement response", "shape": "dot", "size": 3}, {"group": 12, "id": "memorial to the 19 students", "label": "memorial to the 19 students", "shape": "dot", "size": 3}, {"group": 41, "id": "leaked draft supreme court opinion", "label": "leaked draft supreme court opinion", "shape": "dot", "size": 2}, {"group": 41, "id": "people", "label": "people", "shape": "dot", "size": 7}, {"group": 41, "id": "supreme court", "label": "supreme court", "shape": "dot", "size": 7}, {"group": 42, "id": "left-wing extremists", "label": "left-wing extremists", "shape": "dot", "size": 1}, {"group": 42, "id": "tesla gigafactory", "label": "tesla gigafactory", "shape": "dot", "size": 2}, {"group": 39, "id": "mark zaid", "label": "mark zaid", "shape": "dot", "size": 1}, {"group": 21, "id": "meta", "label": "meta", "shape": "dot", "size": 1}, {"group": 39, "id": "michael atkinson", "label": "michael atkinson", "shape": "dot", "size": 2}, {"group": 39, "id": "second whistleblower", "label": "second whistleblower", "shape": "dot", "size": 2}, {"group": 27, "id": "navalny", "label": "navalny", "shape": "dot", "size": 2}, {"group": 43, "id": "new york\u0027s requirement that health care workers be vaccinated against the coronavirus", "label": "new york\u0027s requirement that health care workers be vaccinated against the coronavirus", "shape": "dot", "size": 3}, {"group": 43, "id": "religious freedom", "label": "religious freedom", "shape": "dot", "size": 1}, {"group": 43, "id": "religious objections", "label": "religious objections", "shape": "dot", "size": 1}, {"group": 43, "id": "supreme court\u0027s commitment to religious liberty", "label": "supreme court\u0027s commitment to religious liberty", "shape": "dot", "size": 1}, {"group": 36, "id": "pelosi\u0027s taiwan visit", "label": "pelosi\u0027s taiwan visit", "shape": "dot", "size": 1}, {"group": 36, "id": "hostile reaction from china\u0027s communist government", "label": "hostile reaction from china\u0027s communist government", "shape": "dot", "size": 1}, {"group": 41, "id": "queer activists", "label": "queer activists", "shape": "dot", "size": 3}, {"group": 41, "id": "rights to same-sex marriage and consensual sex are also...", "label": "rights to same-sex marriage and consensual sex are also...", "shape": "dot", "size": 3}, {"group": 41, "id": "roe v. wade", "label": "roe v. wade", "shape": "dot", "size": 3}, {"group": 41, "id": "safe, accessible abortion care for all", "label": "safe, accessible abortion care for all", "shape": "dot", "size": 3}, {"group": 41, "id": "washington, d.c.", "label": "washington, d.c.", "shape": "dot", "size": 2}, {"group": 28, "id": "president biden\u0027s", "label": "president biden\u0027s", "shape": "dot", "size": 1}, {"group": 28, "id": "domestic agenda", "label": "domestic agenda", "shape": "dot", "size": 1}, {"group": 12, "id": "federal safety standard", "label": "federal safety standard", "shape": "dot", "size": 1}, {"group": 16, "id": "pro-kremlin views", "label": "pro-kremlin views", "shape": "dot", "size": 1}, {"group": 42, "id": "production", "label": "production", "shape": "dot", "size": 1}, {"group": 44, "id": "project veritas", "label": "project veritas", "shape": "dot", "size": 3}, {"group": 44, "id": "twitter", "label": "twitter", "shape": "dot", "size": 3}, {"group": 44, "id": "twitter\u0027s policies", "label": "twitter\u0027s policies", "shape": "dot", "size": 2}, {"group": 44, "id": "video", "label": "video", "shape": "dot", "size": 2}, {"group": 33, "id": "republicans appeared to sweep the other statewide races", "label": "republicans appeared to sweep the other statewide races", "shape": "dot", "size": 2}, {"group": 33, "id": "virginia voters", "label": "virginia voters", "shape": "dot", "size": 1}, {"group": 33, "id": "winsome sears", "label": "winsome sears", "shape": "dot", "size": 2}, {"group": 16, "id": "rt (formerly known as russia today)", "label": "rt (formerly known as russia today)", "shape": "dot", "size": 1}, {"group": 45, "id": "senate minority leader mitch mcconnell ", "label": "senate minority leader mitch mcconnell ", "shape": "dot", "size": 1}, {"group": 45, "id": "voted yes", "label": "voted yes", "shape": "dot", "size": 1}, {"group": 48, "id": "trump\u0027s conspiratorial messages and insults based on race", "label": "trump\u0027s conspiratorial messages and insults based on race", "shape": "dot", "size": 1}, {"group": 48, "id": "unproductive", "label": "unproductive", "shape": "dot", "size": 1}, {"group": 47, "id": "trump\u0027s inability to stay on message and stay away from conspiracy theories", "label": "trump\u0027s inability to stay on message and stay away from conspiracy theories", "shape": "dot", "size": 1}, {"group": 47, "id": "targeting momentum of vice president kamala harris", "label": "targeting momentum of vice president kamala harris", "shape": "dot", "size": 1}, {"group": 29, "id": "u.s. evacuations from afghanistan in 2021", "label": "u.s. evacuations from afghanistan in 2021", "shape": "dot", "size": 1}, {"group": 29, "id": "earlier evacuations", "label": "earlier evacuations", "shape": "dot", "size": 1}, {"group": 37, "id": "washington", "label": "washington", "shape": "dot", "size": 1}, {"group": 37, "id": "infrastructure", "label": "infrastructure", "shape": "dot", "size": 1}, {"group": 46, "id": "white house", "label": "white house", "shape": "dot", "size": 1}, {"group": 46, "id": "summoning...", "label": "summoning...", "shape": "dot", "size": 1}]);
+                  edges = new vis.DataSet([{"from": "$31 trillion", "title": "The nation\u0027s total public debt outstanding closed at $31.1 trillion on Monday, according to Treasury Department data published Tuesday.,contextual proximity", "to": "america\u0027s national debt", "width": 2.0}, {"from": "$31 trillion", "title": "contextual proximity", "to": "covid-19 pandemic", "width": 0.5}, {"from": "2022", "title": "contextual proximity", "to": "confiscated firearms", "width": 0.5}, {"from": "2022", "title": "contextual proximity", "to": "firearms", "width": 0.75}, {"from": "2022", "title": "contextual proximity", "to": "transportation security administration officers", "width": 0.5}, {"from": "2024 presidential candidate", "title": "Trump\u0027s re-election campaign was \u0027not an official presidential act,\u0027 according to a three-judge panel on the U.S. Court of Appeals for the District of Columbia, meaning he is not protected by presidential immunity regarding remarks made before the attack.,contextual proximity", "to": "former president trump", "width": 2.5}, {"from": "2024 presidential candidate", "title": "contextual proximity", "to": "jan. 6 insurrection", "width": 0.5}, {"from": "2024 presidential candidate", "title": "The Office of the Presidency as an institution is agnostic about who will occupy it next, according to Chief Judge Sri Srinivasan.,contextual proximity", "to": "office of the presidency", "width": 2.0}, {"from": "absolutely, this bill should not pass", "title": "contextual proximity", "to": "elon musk", "width": 0.5}, {"from": "absolutely, this bill should not pass", "title": "contextual proximity", "to": "goldman", "width": 1.5}, {"from": "absolutely, this bill should not pass", "title": "contextual proximity", "to": "house rs on government funding", "width": 1.0}, {"from": "absolutely, this bill should not pass", "title": "contextual proximity", "to": "mar-a-lago", "width": 1.0}, {"from": "absolutely, this bill should not pass", "title": "contextual proximity", "to": "mike johnson\u0027s continuing resolution to keep the government open", "width": 0.5}, {"from": "absolutely, this bill should not pass", "title": "Declaring \u0027Absolutely, this bill should NOT pass\u0027 regarding House Speaker Mike Johnson\u2019s continuing resolution to keep the government open,contextual proximity", "to": "musk", "width": 2.25}, {"from": "absolutely, this bill should not pass", "title": "contextual proximity", "to": "trump", "width": 1.25}, {"from": "administration", "title": "contextual proximity", "to": "biden\u0027s administration", "width": 0.5}, {"from": "administration", "title": "comparison made by Trump at a private donor event in Florida, where he criticized indictments against him and called Biden\u0027s administration as \u0027running a Gestapo administration\u0027,contextual proximity", "to": "gestapo", "width": 1.5}, {"from": "afghan government", "title": "contextual proximity", "to": "biden-harris administration", "width": 0.5}, {"from": "afghan government", "title": "The report highlights the fact that there were indications and signs of the Afghan government\u0027s imminent collapse during the withdrawal process, but necessary steps to safely evacuate U.S. personnel were not taken by the Biden-Harris administration.", "to": "collapsing", "width": 1.0}, {"from": "afghan government", "title": "contextual proximity", "to": "taliban takeover of afghanistan", "width": 0.5}, {"from": "afghan military", "title": "Intelligence reports in July raised concerns about the rapid collapse of the Afghan military and questioned whether any Afghan security forces would muster serious resistance against the Taliban takeover of Afghanistan.,contextual proximity", "to": "taliban takeover of afghanistan", "width": 1.5}, {"from": "air defense identification zone", "title": "contextual proximity", "to": "american f-16 warplanes", "width": 0.5}, {"from": "air traffic controllers", "title": "President Trump claimed that air traffic controllers are allowed to work with serious health issues and disabilities. The USA TODAY Fact Check Team found that while federal law allows for accommodations to be made for employees with disabilities, these accommodations must not impair the employee\u0027s ability to perform their job safely and effectively.", "to": "serious health issues and disabilities", "width": 1.0}, {"from": "airport checkpoints", "title": "contextual proximity", "to": "confiscated firearms", "width": 0.5}, {"from": "airport checkpoints", "title": "contextual proximity", "to": "firearms", "width": 0.75}, {"from": "airport checkpoints", "title": "contextual proximity", "to": "transportation security administration officers", "width": 0.5}, {"from": "airport passengers", "title": "contextual proximity", "to": "confiscated firearms", "width": 0.5}, {"from": "airport passengers", "title": "Firearms are confiscated from airport passengers by Transportation Security Administration officers.,contextual proximity", "to": "firearms", "width": 1.75}, {"from": "airport passengers", "title": "contextual proximity", "to": "transportation security administration officers", "width": 0.5}, {"from": "alive (at the time of reporting)", "title": "contextual proximity", "to": "dead", "width": 0.5}, {"from": "alive (at the time of reporting)", "title": "According to the report, the East Azerbaijan Governor was not mentioned as dead in the context. However, it is not clear whether he/she survived the crash or not as the search teams had not found any signs of life amongst the passengers by that point.", "to": "east azerbaijan governor", "width": 1.0}, {"from": "allegations of bribery against the company and its associates, including hunter biden and devon archer.", "title": "At the center of allegations of bribery, which were investigated by investigators working for the House Oversight Committee. Testimony from Devon Archer provided more credibility to these allegations.,contextual proximity", "to": "burisma", "width": 1.5}, {"from": "allegations of bribery against the company and its associates, including hunter biden and devon archer.", "title": "contextual proximity", "to": "hunter biden", "width": 0.5}, {"from": "america\u0027s national debt", "title": "contextual proximity", "to": "covid-19 pandemic", "width": 2.0}, {"from": "america\u0027s national debt", "title": "contextual proximity", "to": "growing economic uncertainty", "width": 1.0}, {"from": "america\u0027s national debt", "title": "contextual proximity", "to": "historically high inflation", "width": 1.0}, {"from": "america\u0027s national debt", "title": "contextual proximity", "to": "rising interest rates", "width": 1.0}, {"from": "american f-16 warplanes", "title": "Two American F-16 warplanes intercepted four Russian aircraft near Alaska according to a statement released by the joint US-Canadian North American Aerospace Defense Command (NORAD) on Tuesday. The Russian planes included Tu-95 bombers and Su-35 fighter aircraft and remained in international airspace, not entering American or Canadian sovereign airspace, which NORAD described as a routine activity that \u0027occurs regularly\u0027 and is \u0027not seen as a threat, nor is the activity seen as provocative.\u0027,contextual proximity", "to": "russian aircraft", "width": 1.5}, {"from": "appointment of a special master", "title": "contextual proximity", "to": "classified documents", "width": 0.5}, {"from": "appointment of a special master", "title": "the Justice Department argues that former President Donald Trump\u0027s request to appoint a special master to review the documents is unnecessary and would significantly harm important governmental interests, including national security interests.", "to": "justice department", "width": 1.0}, {"from": "assault weapons", "title": "California\u0027s three-decade-old ban on assault weapons has been overturned by a federal judge in California, who called it a \u0027failed experiment\u0027. The law prohibiting the sale of assault weapons in 1989 was challenged in a suit filed in 2019 against the state\u2019s attorney general by plaintiffs including James Miller, a California resident, and the San Diego County Gun Owners, a political action committee.,contextual proximity", "to": "california", "width": 2.0}, {"from": "assault weapons", "title": "contextual proximity", "to": "failed experiment", "width": 1.0}, {"from": "authorities", "title": "contextual proximity", "to": "justice department", "width": 0.75}, {"from": "authorities", "title": "contextual proximity", "to": "president joe biden", "width": 0.5}, {"from": "authorities", "title": "Authorities have faced questions about the shifting and at times contradictory information regarding the incident.", "to": "shifting and at times contradictory information", "width": 1.0}, {"from": "authorities", "title": "contextual proximity", "to": "texas school shooting", "width": 0.5}, {"from": "average global temperature", "title": "contextual proximity", "to": "global temperature", "width": 0.5}, {"from": "average global temperature", "title": "contextual proximity", "to": "hottest global temperature ever recorded", "width": 2.0}, {"from": "average global temperature", "title": "contextual proximity", "to": "may well see a few even higher records this year", "width": 0.5}, {"from": "average global temperature", "title": "contextual proximity", "to": "previous record", "width": 0.5}, {"from": "average global temperature", "title": "contextual proximity", "to": "world", "width": 0.5}, {"from": "barack obama", "title": "contextual proximity", "to": "hollywood\u0027s brightest stars", "width": 0.5}, {"from": "barack obama", "title": "Late-night host Jimmy Kimmel interviewed both Biden and former President Barack Obama at the fundraiser, emphasizing the importance of defeating Donald Trump in the upcoming presidential election.,contextual proximity", "to": "joe biden", "width": 1.75}, {"from": "battle", "title": "contextual proximity", "to": "cdc guidelines", "width": 1.5}, {"from": "battle", "title": "The White House is engaged in a conflict with the Centers for Disease Control and Prevention over the agency\u0027s detailed guidelines for reopening establishments.", "to": "cdc", "width": 1.0}, {"from": "benny gantz", "title": "contextual proximity", "to": "israel", "width": 0.75}, {"from": "benny gantz", "title": "contextual proximity", "to": "israel\u0027s supreme court", "width": 0.75}, {"from": "benny gantz", "title": "Former Defense Minister Benny Gantz, who is currently part of the emergency unity government formed after the Oct. 7 attack, could potentially leave this coalition in response to the ongoing constitutional and political crisis caused by Netanyahu\u0027s actions.", "to": "leave the emergency unity government", "width": 1.0}, {"from": "biden administration", "title": "contextual proximity", "to": "court latino voters in crucial battleground states", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "democratic lawmakers", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "deterrence plus diplomacy", "width": 2.0}, {"from": "biden administration", "title": "contextual proximity", "to": "european allies", "width": 2.0}, {"from": "biden administration", "title": "contextual proximity", "to": "executive action", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "framing it as \u0027new action to keep families together\u0027", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "invited to the...", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "lawmakers", "width": 1.5}, {"from": "biden administration", "title": "contextual proximity", "to": "moscow", "width": 4.0}, {"from": "biden administration", "title": "contextual proximity", "to": "nato", "width": 2.0}, {"from": "biden administration", "title": "contextual proximity", "to": "protection from deportation", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "russia", "width": 2.75}, {"from": "biden administration", "title": "contextual proximity", "to": "strategic failure", "width": 4.0}, {"from": "biden administration", "title": "contextual proximity", "to": "ukraine crisis", "width": 6.0}, {"from": "biden administration", "title": "contextual proximity", "to": "undocumented spouses of american citizens", "width": 0.75}, {"from": "biden administration", "title": "contextual proximity", "to": "united states", "width": 2.0}, {"from": "biden administration\u0027s public transportation mask mandate", "title": "contextual proximity", "to": "older adults, the ill and the immunocompromised", "width": 0.5}, {"from": "biden administration\u0027s public transportation mask mandate", "title": "The author hates both due to perceived unnecessary restrictions during air travel and public transit.,contextual proximity", "to": "wearing a mask on long flights", "width": 1.5}, {"from": "biden administration\u0027s student loan forgiveness plan", "title": "The current pause on student loan repayments is set to end 60 days after June 30, or 60 days after the Supreme Court issues its long-awaited ruling on debt relief.,contextual proximity", "to": "student loan repayments", "width": 1.5}, {"from": "biden\u0027s administration", "title": "contextual proximity", "to": "contempt", "width": 0.5}, {"from": "biden\u0027s administration", "title": "contextual proximity", "to": "gestapo", "width": 1.0}, {"from": "biden\u0027s administration", "title": "contextual proximity", "to": "gestapo administration", "width": 0.5}, {"from": "biden\u0027s administration", "title": "contextual proximity", "to": "trump", "width": 0.5}, {"from": "biden-harris administration", "title": "contextual proximity", "to": "collapsing", "width": 0.5}, {"from": "biden-harris administration", "title": "contextual proximity", "to": "information and opportunity to plan for the collapse of afghan government", "width": 0.5}, {"from": "biden-harris administration", "title": "contextual proximity", "to": "safely evacuate u.s. personnel", "width": 0.5}, {"from": "burisma", "title": "contextual proximity", "to": "devon archer", "width": 0.5}, {"from": "burisma", "title": "Served as a board member for Burisma, which was the focus of allegations of bribery against Hunter Biden.,contextual proximity", "to": "hunter biden", "width": 2.0}, {"from": "california", "title": "contextual proximity", "to": "failed experiment", "width": 1.0}, {"from": "candidates", "title": "contextual proximity", "to": "election-related queries", "width": 1.0}, {"from": "candidates", "title": "contextual proximity", "to": "gemini ai chatbot", "width": 0.5}, {"from": "cdc", "title": "contextual proximity", "to": "cdc guidelines", "width": 1.5}, {"from": "cdc guidelines", "title": "The CDC\u0027s guidelines for safely reopening child care programs are included in the document obtained by The New York Times.,contextual proximity", "to": "child care programs", "width": 2.5}, {"from": "cdc guidelines", "title": "The CDC\u0027s guidance for churches and other religious institutions is included in the document.,contextual proximity", "to": "churches and other \u0027communities of faith\u0027", "width": 2.5}, {"from": "cdc guidelines", "title": "contextual proximity", "to": "employers", "width": 1.5}, {"from": "cdc guidelines", "title": "The CDC\u0027s recommendations for mass transit administrators are listed in the document.,contextual proximity", "to": "mass transit administrators", "width": 2.5}, {"from": "cdc guidelines", "title": "contextual proximity", "to": "recommendations", "width": 1.5}, {"from": "cdc guidelines", "title": "contextual proximity", "to": "reopening economy", "width": 1.5}, {"from": "cdc guidelines", "title": "The CDC\u0027s suggestions for restaurants and bars are included in the document.,contextual proximity", "to": "restaurants and bars", "width": 2.5}, {"from": "cdc guidelines", "title": "The CDC\u0027s recommendations for schools and day camps are also listed in the document.,contextual proximity", "to": "schools and day camps", "width": 2.5}, {"from": "cdc guidelines", "title": "contextual proximity", "to": "trump, president", "width": 1.5}, {"from": "cdc guidelines", "title": "contextual proximity", "to": "vulnerable workers", "width": 1.5}, {"from": "china\u0027s hostile reaction to pelosi\u0027s taiwan visit", "title": "Compounded by China\u0027s military exercises off Taiwan, including firing missiles that splashed down in surrounding waters.", "to": "worsening of relations", "width": 1.0}, {"from": "chinese political spam network", "title": "Meta began investigating in 2019 a Chinese political spam network that had targeted users in Australia and other parts of the world. This network falls under the term Spamouflage, which has been coined by several research groups including the Australian Strategic Policy Institute (Aspi).,contextual proximity", "to": "spamouflage", "width": 1.5}, {"from": "classified documents", "title": "some of the classified documents found at former President Donald Trump\u0027s Mar-a-Lago estate were so sensitive that FBI agents and Justice Department attorneys needed additional security clearances to review them after the raid earlier this month.,contextual proximity", "to": "fbi agents and justice department attorneys", "width": 1.5}, {"from": "classified documents", "title": "evidence suggests that classified documents were likely concealed and removed from former President Donald Trump\u0027s Mar-a-Lago estate before the FBI search to retrieve them.,contextual proximity", "to": "former president donald trump\u0027s mar-a-lago estate", "width": 1.5}, {"from": "classified documents", "title": "contextual proximity", "to": "justice department", "width": 0.5}, {"from": "classified material", "title": "contextual proximity", "to": "potential vulnerabilities of the united states and its allies to military...", "width": 0.5}, {"from": "classified material", "title": "contextual proximity", "to": "united states nuclear programs", "width": 0.5}, {"from": "confiscated firearms", "title": "contextual proximity", "to": "firearms", "width": 1.5}, {"from": "confiscated firearms", "title": "contextual proximity", "to": "loaded firearms", "width": 0.5}, {"from": "confiscated firearms", "title": "contextual proximity", "to": "maximum civil penalty for a firearms violation", "width": 0.5}, {"from": "confiscated firearms", "title": "contextual proximity", "to": "transportation security administration officers", "width": 1.0}, {"from": "conservative attorneys", "title": "The Federalist Society, a well-funded network of conservative attorneys, has come under unusual scrutiny after Donald Trump elevated scores of its members to the federal judiciary.,contextual proximity", "to": "democrats", "width": 1.5}, {"from": "conservative attorneys", "title": "contextual proximity", "to": "justice sam alito", "width": 1.0}, {"from": "constitutional and political crisis", "title": "The recent Supreme Court ruling and potential strong reactions from Netanyahu and his allies could thrust Israel back into a constitutional and political crisis, exacerbated by ongoing conflicts in Gaza and Lebanon.,contextual proximity", "to": "israel", "width": 1.75}, {"from": "constitutional and political crisis", "title": "contextual proximity", "to": "israel\u0027s supreme court", "width": 0.75}, {"from": "contempt", "title": "contextual proximity", "to": "gestapo", "width": 0.5}, {"from": "contempt", "title": "found by a New York judge for violating a gag order in his hush money trial", "to": "trump", "width": 1.0}, {"from": "court latino voters in crucial battleground states", "title": "contextual proximity", "to": "lawmakers", "width": 0.5}, {"from": "court\u0027s ability to review government decisions", "title": "contextual proximity", "to": "israel", "width": 0.75}, {"from": "court\u0027s ability to review government decisions", "title": "The recent decision by Israel\u0027s Supreme Court has limited its own ability to review government decisions, which could have significant implications for the country\u0027s constitutional and political landscape.,contextual proximity", "to": "israel\u0027s supreme court", "width": 1.75}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "democrats", "width": 0.75}, {"from": "covid-19 pandemic", "title": "Dr. Anthony Fauci, the top U.S. infectious disease expert until leaving the government in 2022, played a significant role in addressing the COVID-19 pandemic.,contextual proximity", "to": "dr. anthony fauci", "width": 4.75}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "growing economic uncertainty", "width": 0.5}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "historically high inflation", "width": 0.5}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "republican lawmakers", "width": 0.75}, {"from": "covid-19 pandemic", "title": "The Republican-led subcommittee has been investigating the nation\u2019s response to the COVID-19 pandemic and the role of U.S.-funded research in China for over a year.,contextual proximity", "to": "republican-led subcommittee", "width": 1.75}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "rising interest rates", "width": 0.5}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "trusted...", "width": 0.75}, {"from": "covid-19 pandemic", "title": "contextual proximity", "to": "u.s.-funded research in china", "width": 1.5}, {"from": "dead", "title": "contextual proximity", "to": "east azerbaijan governor", "width": 0.5}, {"from": "dead", "title": "Iran\u0027s state television confirmed that Foreign Minister Hossein Amir-Abdollahian, who was also on the helicopter, was killed in the crash.,contextual proximity", "to": "foreign minister hossein amir-abdollahian", "width": 1.5}, {"from": "dead", "title": "Iranian President Ebrahim Raisi was killed in a helicopter crash in mountainous terrain and icy weather, as confirmed by Iran\u0027s state television.,contextual proximity", "to": "iranian president ebrahim raisi", "width": 1.5}, {"from": "democratic lawmakers", "title": "Lawmakers have been briefed on the plan, including Democratic lawmakers.,contextual proximity", "to": "lawmakers", "width": 1.5}, {"from": "democrats", "title": "contextual proximity", "to": "dr. anthony fauci", "width": 1.25}, {"from": "democrats", "title": "contextual proximity", "to": "federalist society", "width": 0.5}, {"from": "democrats", "title": "In his keynote address at this year\u2019s Federalist Society National Lawyers Convention, Justice Sam Alito delivered a grievance-laden tirade against Democrats.,contextual proximity", "to": "justice sam alito", "width": 3.0}, {"from": "democrats", "title": "contextual proximity", "to": "progressive movement", "width": 0.5}, {"from": "democrats", "title": "contextual proximity", "to": "u.s.-funded research in china", "width": 0.5}, {"from": "democrats", "title": "contextual proximity", "to": "united states\u0027 response to the covid-19", "width": 0.5}, {"from": "democrats no longer have one-party rule in washington", "title": "Now that Democrats no longer have one-party rule in Washington, oversight and accountability are coming.,contextual proximity", "to": "house republicans", "width": 1.5}, {"from": "deterrence plus diplomacy", "title": "contextual proximity", "to": "moscow", "width": 0.5}, {"from": "deterrence plus diplomacy", "title": "contextual proximity", "to": "strategic failure", "width": 0.5}, {"from": "deterrence plus diplomacy", "title": "contextual proximity", "to": "ukraine crisis", "width": 0.75}, {"from": "devon archer", "title": "contextual proximity", "to": "hunter biden", "width": 0.5}, {"from": "dhs", "title": "contextual proximity", "to": "disinformation", "width": 0.5}, {"from": "dhs", "title": "The Disinformation Governance Board, a panel created by DHS to combat misinformation, is part of the agency\u0027s broader efforts to counter dangerous speech.,contextual proximity", "to": "disinformation governance board", "width": 1.5}, {"from": "dhs", "title": "contextual proximity", "to": "influence", "width": 0.5}, {"from": "dhs", "title": "contextual proximity", "to": "influence tech platforms", "width": 0.5}, {"from": "dhs", "title": "contextual proximity", "to": "misinformation", "width": 0.5}, {"from": "dhs", "title": "contextual proximity", "to": "tech platforms", "width": 0.5}, {"from": "disinformation", "title": "The term \u0027disinformation\u0027 refers to information spread intentionally, while \u0027misinformation\u0027 denotes false information spread unintentionally. Both are being targeted by DHS in their efforts against dangerous speech.", "to": "misinformation", "width": 1.0}, {"from": "diversity hiring initiatives", "title": "President Trump suggested that diversity hiring initiatives could have contributed to the plane-helicopter collision near Ronald Reagan National Airport. This statement is not supported by evidence, and the investigation into the cause of the crash is ongoing.", "to": "plane-helicopter collision", "width": 1.0}, {"from": "dmitry peskov", "title": "Dmitry Peskov spoke to Russia\u0027s state-run media about dismissing a report claiming that Vladimir Putin did not order the killing of Navalny.", "to": "russia\u0027s state-run media", "width": 1.0}, {"from": "dmitry peskov", "title": "contextual proximity", "to": "u.s. intelligence agencies", "width": 0.5}, {"from": "dmitry peskov", "title": "contextual proximity", "to": "vladimir putin", "width": 0.5}, {"from": "donald trump", "title": "contextual proximity", "to": "facebook", "width": 1.0}, {"from": "donald trump", "title": "contextual proximity", "to": "google", "width": 0.5}, {"from": "donald trump", "title": "contextual proximity", "to": "the trump \u0027attempted assassination photo\u0027", "width": 0.5}, {"from": "dr. anthony fauci", "title": "Republican lawmakers posed heated questioning to Dr. Anthony Fauci about the origins of the COVID-19 pandemic during a hearing.,contextual proximity", "to": "republican lawmakers", "width": 2.25}, {"from": "dr. anthony fauci", "title": "contextual proximity", "to": "republican-led subcommittee", "width": 1.25}, {"from": "dr. anthony fauci", "title": "contextual proximity", "to": "trusted...", "width": 1.25}, {"from": "dr. anthony fauci", "title": "contextual proximity", "to": "u.s.-funded research in china", "width": 2.5}, {"from": "education secretary miguel cardona", "title": "contextual proximity", "to": "student loan repayments", "width": 0.5}, {"from": "election interference case", "title": "The election interference case against former president Donald Trump and his allies was managed by an outside prosecutor appointed by Fani T. Willis, the District Attorney for Fulton County.", "to": "former president donald trump", "width": 1.0}, {"from": "election-related queries", "title": "Gemini AI chatbot will not provide information about other elements of politics in response to election-related queries in countries where voting is taking place this year.,contextual proximity", "to": "elements of politics", "width": 2.0}, {"from": "election-related queries", "title": "contextual proximity", "to": "gemini ai chatbot", "width": 2.0}, {"from": "election-related queries", "title": "contextual proximity", "to": "google", "width": 1.0}, {"from": "election-related queries", "title": "Gemini AI chatbot will not provide information about political parties in response to election-related queries in countries where voting is taking place this year.,contextual proximity", "to": "political parties", "width": 2.0}, {"from": "elements of politics", "title": "contextual proximity", "to": "gemini ai chatbot", "width": 0.5}, {"from": "elon musk", "title": "Comparing Elon Musk to a \u0027shadow Pres-Elect\u0027,contextual proximity", "to": "goldman", "width": 4.0}, {"from": "elon musk", "title": "contextual proximity", "to": "house rs on government funding", "width": 2.0}, {"from": "elon musk", "title": "contextual proximity", "to": "mar-a-lago", "width": 2.0}, {"from": "elon musk", "title": "contextual proximity", "to": "mike johnson", "width": 0.5}, {"from": "elon musk", "title": "contextual proximity", "to": "mike johnson\u0027s continuing resolution to keep the government open", "width": 1.0}, {"from": "elon musk", "title": "contextual proximity", "to": "musk", "width": 2.5}, {"from": "elon musk", "title": "contextual proximity", "to": "president-elect donald trump", "width": 0.5}, {"from": "elon musk", "title": "contextual proximity", "to": "rep. daniel goldman", "width": 0.5}, {"from": "elon musk", "title": "contextual proximity", "to": "trump", "width": 2.5}, {"from": "emergency unity government", "title": "contextual proximity", "to": "israel", "width": 0.75}, {"from": "emergency unity government", "title": "contextual proximity", "to": "israel\u0027s supreme court", "width": 0.75}, {"from": "emergency unity government", "title": "The Oct. 7 attack led to the formation of an emergency unity government, which Benny Gantz is currently a part of.", "to": "oct. 7 attack", "width": 1.0}, {"from": "employers", "title": "The CDC\u0027s recommendations for employers with vulnerable workers are listed in the document.", "to": "vulnerable workers", "width": 1.0}, {"from": "european allies", "title": "contextual proximity", "to": "moscow", "width": 0.5}, {"from": "european allies", "title": "contextual proximity", "to": "strategic failure", "width": 0.5}, {"from": "european allies", "title": "contextual proximity", "to": "ukraine crisis", "width": 0.75}, {"from": "excessive heat", "title": "President Joe Biden warned that high temperatures are the country\u2019s leading weather-related killer, as tens of millions of people in the U.S. Are under heat advisories.", "to": "leading weather-related killer", "width": 1.0}, {"from": "executive action", "title": "contextual proximity", "to": "lawmakers", "width": 0.5}, {"from": "facebook", "title": "contextual proximity", "to": "google", "width": 0.5}, {"from": "facebook", "title": "contextual proximity", "to": "the trump \u0027attempted assassination photo\u0027", "width": 0.5}, {"from": "fair, impartial and independent manner", "title": "Department spokesman Anthony Coley stated that the review would be conducted in a fair, impartial and independent manner.,contextual proximity", "to": "justice department", "width": 1.75}, {"from": "fair, impartial and independent manner", "title": "contextual proximity", "to": "president joe biden", "width": 0.5}, {"from": "fair, impartial and independent manner", "title": "contextual proximity", "to": "texas school shooting", "width": 0.5}, {"from": "fani t. willis", "title": "Fani T. Willis admitted to having a personal relationship with an outside prosecutor she appointed to manage the election interference case against former president Donald Trump and his allies. She denied claims that the relationship had tainted the proceedings in a 176-page court filing on Friday, calling the accusations \u2018meritless\u2019 and \u2018salacious\u2019. Willis asked a judge to reject motions from Trump and other co-defendants seeking to disqualify her and her office from the case without an evidentiary hearing.", "to": "outside prosecutor", "width": 1.0}, {"from": "farmworkers", "title": "landscapers and indoor workers in warehouses, factories are affected by excessive heat in the workplace, including farmworkers, delivery and construction workers, landscapers and indoor workers in warehouses, factories...", "to": "delivery and construction workers", "width": 1.0}, {"from": "federalist society", "title": "Justice Sam Alito spoke at this year\u2019s Federalist Society National Lawyers Convention, a well-funded network of conservative attorneys.,contextual proximity", "to": "justice sam alito", "width": 2.0}, {"from": "firearms", "title": "Of the firearms confiscated, 88% were loaded.,contextual proximity", "to": "loaded firearms", "width": 1.75}, {"from": "firearms", "title": "contextual proximity", "to": "maximum civil penalty for a firearms violation", "width": 0.75}, {"from": "firearms", "title": "Transportation Security Administration officers confiscate firearms from airport passengers.,contextual proximity", "to": "transportation security administration officers", "width": 2.5}, {"from": "former democratic governor terry mcauliffe", "title": "contextual proximity", "to": "republican glenn youngkin", "width": 0.5}, {"from": "former president trump", "title": "contextual proximity", "to": "jan. 6 insurrection", "width": 0.75}, {"from": "former president trump", "title": "The Office of the Presidency as an institution is agnostic about who will occupy it next, according to Chief Judge Sri Srinivasan.,contextual proximity", "to": "office of the presidency", "width": 2.5}, {"from": "framing it as \u0027new action to keep families together\u0027", "title": "contextual proximity", "to": "lawmakers", "width": 0.5}, {"from": "gemini ai chatbot", "title": "Google is restricting its Gemini AI chatbot from answering election-related questions in countries where voting is taking place this year, limiting users from receiving information about candidates, political parties and other elements of politics.,contextual proximity", "to": "google", "width": 1.5}, {"from": "gemini ai chatbot", "title": "contextual proximity", "to": "political parties", "width": 0.5}, {"from": "gestapo", "title": "contextual proximity", "to": "gestapo administration", "width": 0.5}, {"from": "gestapo", "title": "contextual proximity", "to": "trump", "width": 0.5}, {"from": "global temperature", "title": "contextual proximity", "to": "hottest global temperature ever recorded", "width": 1.0}, {"from": "goldman", "title": "contextual proximity", "to": "house rs on government funding", "width": 6.0}, {"from": "goldman", "title": "contextual proximity", "to": "mar-a-lago", "width": 6.0}, {"from": "goldman", "title": "contextual proximity", "to": "mike johnson", "width": 1.5}, {"from": "goldman", "title": "contextual proximity", "to": "mike johnson\u0027s continuing resolution to keep the government open", "width": 3.0}, {"from": "goldman", "title": "Accused by Goldman of being a \u0027puppet\u0027 for Trump,contextual proximity", "to": "musk", "width": 8.5}, {"from": "goldman", "title": "contextual proximity", "to": "president-elect donald trump", "width": 1.5}, {"from": "goldman", "title": "contextual proximity", "to": "rep. daniel goldman", "width": 1.5}, {"from": "goldman", "title": "contextual proximity", "to": "trump", "width": 7.5}, {"from": "hamas\u0027 attacks in israel last month", "title": "raises serious ethical questions about how the journalists were able to be at the breached border fence as Hamas gunmen launched their assault, and whether they had prior knowledge or possibly even coordinated with Hamas in order to document the carnage.", "to": "presence of photographers working for the associated press and reuters at breached border fence between gaza and israel early in the early morning of oct. 7", "width": 1.0}, {"from": "hollywood\u0027s brightest stars", "title": "Some of Hollywood\u2019s brightest stars, including George Clooney, Julia Roberts, and Barbra Streisand, headlined a fundraiser for Biden, raising a record $30 million-plus for his campaign.,contextual proximity", "to": "joe biden", "width": 2.5}, {"from": "hollywood\u0027s brightest stars", "title": "contextual proximity", "to": "president joe biden", "width": 0.5}, {"from": "hollywood\u0027s brightest stars", "title": "The stars emphasized the significance of the upcoming White House contest, stating that it may rank among the most consequential in U.S. history.,contextual proximity", "to": "white house contest", "width": 1.5}, {"from": "honesty", "title": "Comer and others have praised Bobulinski for being \u0027honest\u0027,contextual proximity", "to": "tony bobulinski", "width": 1.75}, {"from": "hottest global temperature ever recorded", "title": "contextual proximity", "to": "may well see a few even higher records this year", "width": 1.0}, {"from": "hottest global temperature ever recorded", "title": "The previous record of 16.92 degrees Celsius was set in August 2016.,contextual proximity", "to": "previous record", "width": 2.0}, {"from": "hottest global temperature ever recorded", "title": "contextual proximity", "to": "world", "width": 1.0}, {"from": "house oversight committee", "title": "contextual proximity", "to": "house republicans", "width": 0.5}, {"from": "house oversight committee", "title": "Chairman of the House Oversight Committee", "to": "representative james comer", "width": 1.0}, {"from": "house oversight committee chair james comer", "title": "contextual proximity", "to": "tony bobulinski", "width": 0.75}, {"from": "house republicans", "title": "contextual proximity", "to": "representative james comer", "width": 0.5}, {"from": "house republicans", "title": "contextual proximity", "to": "treasury department", "width": 0.5}, {"from": "house rs on government funding", "title": "contextual proximity", "to": "mar-a-lago", "width": 4.0}, {"from": "house rs on government funding", "title": "contextual proximity", "to": "mike johnson", "width": 1.0}, {"from": "house rs on government funding", "title": "contextual proximity", "to": "mike johnson\u0027s continuing resolution to keep the government open", "width": 2.0}, {"from": "house rs on government funding", "title": "Opposing House Speaker Mike Johnson\u2019s continuing resolution to keep the government open,Calling the shots for House Rs on government funding regarding Musk\u0027s opposition to House Speaker Mike Johnson\u2019s continuing resolution to keep the government open,Opposing House Speaker Mike Johnson\u2019s continuing resolution to keep the government open in response to Goldman\u0027s accusation of being a \u0027puppet\u0027,contextual proximity", "to": "musk", "width": 8.0}, {"from": "house rs on government funding", "title": "contextual proximity", "to": "president-elect donald trump", "width": 1.0}, {"from": "house rs on government funding", "title": "contextual proximity", "to": "rep. daniel goldman", "width": 1.0}, {"from": "house rs on government funding", "title": "contextual proximity", "to": "trump", "width": 5.0}, {"from": "hunter biden\u0027s business deals", "title": "Bobulinski was a former business associate of Hunter Biden and provided testimony during the impeachment inquiry against President Trump regarding Hunter Biden\u0027s business dealings.,contextual proximity", "to": "tony bobulinski", "width": 1.75}, {"from": "influence", "title": "DHS is working to influence technology platforms as a means of curbing dangerous speech, according to internal documents obtained through leaks and lawsuits.", "to": "tech platforms", "width": 1.0}, {"from": "infrastructure investment and jobs act", "title": "The legislation, known as the Infrastructure Investment and Jobs Act,", "to": "legislation", "width": 1.0}, {"from": "intelligence official", "title": "The second person, also described as an intelligence official, has first-hand knowledge of some of the allegations outlined in the original complaint and has spoken with the inspector general.,contextual proximity", "to": "whistleblower", "width": 1.5}, {"from": "invited to the...", "title": "Lawmakers have been briefed on the plan and at least some have been invited to the...,contextual proximity", "to": "lawmakers", "width": 1.5}, {"from": "israel", "title": "contextual proximity", "to": "israel\u0027s prime minister benjamin netanyahu", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "israel\u0027s supreme court", "width": 2.25}, {"from": "israel", "title": "contextual proximity", "to": "judicial overhaul", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "leave the emergency unity government", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "lebanon", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "netanyahu government\u0027s judicial overhaul", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "oct. 7 attack", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "strong reaction", "width": 0.75}, {"from": "israel", "title": "contextual proximity", "to": "war in gaza", "width": 0.75}, {"from": "israel\u0027s prime minister benjamin netanyahu", "title": "contextual proximity", "to": "israel\u0027s supreme court", "width": 0.75}, {"from": "israel\u0027s prime minister benjamin netanyahu", "title": "Following the Supreme Court\u0027s ruling, a strong response by Israeli Prime Minister Benjamin Netanyahu and his radical right-wing political allies could potentially exacerbate the ongoing constitutional and political crisis in Israel.", "to": "strong reaction", "width": 1.0}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "judicial overhaul", "width": 0.75}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "leave the emergency unity government", "width": 0.75}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "lebanon", "width": 0.75}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "netanyahu government\u0027s judicial overhaul", "width": 0.75}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "oct. 7 attack", "width": 0.75}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "strong reaction", "width": 0.75}, {"from": "israel\u0027s supreme court", "title": "contextual proximity", "to": "war in gaza", "width": 0.75}, {"from": "jan. 6 insurrection", "title": "contextual proximity", "to": "office of the presidency", "width": 0.5}, {"from": "joe biden", "title": "contextual proximity", "to": "president joe biden", "width": 0.75}, {"from": "joe biden", "title": "contextual proximity", "to": "white house contest", "width": 0.75}, {"from": "joe manchin", "title": "contextual proximity", "to": "senate republicans", "width": 0.5}, {"from": "joe manchin", "title": "contextual proximity", "to": "slimmed-down elections compromise", "width": 0.5}, {"from": "justice department", "title": "contextual proximity", "to": "law enforcement response", "width": 0.75}, {"from": "justice department", "title": "contextual proximity", "to": "memorial to the 19 students", "width": 0.75}, {"from": "justice department", "title": "contextual proximity", "to": "president joe biden", "width": 1.5}, {"from": "justice department", "title": "contextual proximity", "to": "shifting and at times contradictory information", "width": 0.75}, {"from": "justice department", "title": "The Justice Department announced on Sunday that it will review the law enforcement response to the Texas school shooting...,contextual proximity", "to": "texas school shooting", "width": 2.5}, {"from": "justice sam alito", "title": "contextual proximity", "to": "progressive movement", "width": 1.0}, {"from": "justice sam alito", "title": "contextual proximity", "to": "united states\u0027 response to the covid-19", "width": 1.0}, {"from": "law enforcement response", "title": "contextual proximity", "to": "president joe biden", "width": 0.5}, {"from": "law enforcement response", "title": "contextual proximity", "to": "texas school shooting", "width": 0.5}, {"from": "lawmakers", "title": "contextual proximity", "to": "protection from deportation", "width": 0.5}, {"from": "lawmakers", "title": "contextual proximity", "to": "undocumented spouses of american citizens", "width": 0.5}, {"from": "leaked draft supreme court opinion", "title": "contextual proximity", "to": "people", "width": 0.5}, {"from": "leaked draft supreme court opinion", "title": "apparent plan to overturn the landmark abortion protections of Roe v. Wade,contextual proximity", "to": "supreme court", "width": 1.5}, {"from": "left-wing extremists", "title": "contextual proximity", "to": "tesla gigafactory", "width": 0.5}, {"from": "loaded firearms", "title": "contextual proximity", "to": "transportation security administration officers", "width": 0.5}, {"from": "mar-a-lago", "title": "contextual proximity", "to": "mike johnson", "width": 1.0}, {"from": "mar-a-lago", "title": "contextual proximity", "to": "mike johnson\u0027s continuing resolution to keep the government open", "width": 2.0}, {"from": "mar-a-lago", "title": "contextual proximity", "to": "musk", "width": 5.0}, {"from": "mar-a-lago", "title": "contextual proximity", "to": "president-elect donald trump", "width": 1.0}, {"from": "mar-a-lago", "title": "contextual proximity", "to": "rep. daniel goldman", "width": 1.0}, {"from": "mar-a-lago", "title": "Hiding in Mar-a-Lago behind his handlers,Goldman\u0027s claim that Trump is hiding in Mar-a-Lago behind his handlers,Goldman\u0027s claim that Trump is hiding in Mar-a-Lago behind his handlers regarding Musk\u0027s opposition to House Speaker Mike Johnson\u2019s continuing resolution to keep the government open,Goldman\u0027s claim that Trump is hiding in Mar-a-Lago behind his handlers regarding Musk\u0027s opposition to House Speaker Mike Johnson\u2019s continuing resolution to keep the government open,contextual proximity", "to": "trump", "width": 9.0}, {"from": "mark zaid", "title": "contextual proximity", "to": "whistleblower", "width": 0.5}, {"from": "maximum civil penalty for a firearms violation", "title": "Transportation Security Administration raises maximum civil penalty for a firearms violation.,contextual proximity", "to": "transportation security administration officers", "width": 1.5}, {"from": "may well see a few even higher records this year", "title": "Experts warn that the record could be broken several more times this year. Robert Rohde, lead scientist at Berkeley Earth, said in a Twitter post on Tuesday that the world \u2018may well see a few even...\u0027", "to": "world", "width": 1.0}, {"from": "memorial to the 19 students", "title": "While President Joe Biden visited Uvalde, he and First Lady Jill Biden paid their respects at a memorial to the 19 students who lost their lives in the shooting.,contextual proximity", "to": "president joe biden", "width": 1.5}, {"from": "memorial to the 19 students", "title": "contextual proximity", "to": "texas school shooting", "width": 0.5}, {"from": "meta", "title": "Meta revealed in a report released on Tuesday that it had removed 7,704 Facebook accounts, 954 pages, 15 groups and 15 Instagram accounts identified as violating the company\u2019s inauthentic behaviour linked to this Spamouflage network.,contextual proximity", "to": "spamouflage", "width": 1.5}, {"from": "michael atkinson", "title": "The second person, also described as an intelligence official, has been interviewed by the head of the intelligence community\u0027s internal watchdog office, Michael Atkinson.", "to": "second whistleblower", "width": 1.0}, {"from": "michael atkinson", "title": "contextual proximity", "to": "whistleblower", "width": 0.5}, {"from": "mike johnson", "title": "contextual proximity", "to": "mike johnson\u0027s continuing resolution to keep the government open", "width": 0.5}, {"from": "mike johnson", "title": "contextual proximity", "to": "musk", "width": 1.25}, {"from": "mike johnson", "title": "contextual proximity", "to": "trump", "width": 1.25}, {"from": "mike johnson\u0027s continuing resolution to keep the government open", "title": "contextual proximity", "to": "musk", "width": 2.5}, {"from": "mike johnson\u0027s continuing resolution to keep the government open", "title": "contextual proximity", "to": "president-elect donald trump", "width": 0.5}, {"from": "mike johnson\u0027s continuing resolution to keep the government open", "title": "contextual proximity", "to": "rep. daniel goldman", "width": 0.5}, {"from": "mike johnson\u0027s continuing resolution to keep the government open", "title": "contextual proximity", "to": "trump", "width": 2.5}, {"from": "moscow", "title": "contextual proximity", "to": "nato", "width": 0.5}, {"from": "moscow", "title": "contextual proximity", "to": "russia", "width": 0.5}, {"from": "moscow", "title": "contextual proximity", "to": "strategic failure", "width": 1.0}, {"from": "moscow", "title": "Highlighted a larger strategic failure, one that extends beyond this administration due to Moscow\u0027s actions during this crisis,contextual proximity", "to": "ukraine crisis", "width": 2.5}, {"from": "moscow", "title": "contextual proximity", "to": "united states", "width": 0.5}, {"from": "musk", "title": "contextual proximity", "to": "president-elect donald trump", "width": 1.25}, {"from": "musk", "title": "contextual proximity", "to": "rep. daniel goldman", "width": 1.25}, {"from": "musk", "title": "contextual proximity", "to": "trump", "width": 6.25}, {"from": "nato", "title": "contextual proximity", "to": "strategic failure", "width": 0.5}, {"from": "nato", "title": "contextual proximity", "to": "ukraine crisis", "width": 0.75}, {"from": "navalny", "title": "contextual proximity", "to": "u.s. intelligence agencies", "width": 0.5}, {"from": "navalny", "title": "Famed dissident Navalny died in an Arctic prison, which Russia did not blame Vladimir Putin for, according to the report dismissed by Russia.,contextual proximity", "to": "vladimir putin", "width": 1.5}, {"from": "new york\u0027s requirement that health care workers be vaccinated against the coronavirus", "title": "contextual proximity", "to": "religious freedom", "width": 0.75}, {"from": "new york\u0027s requirement that health care workers be vaccinated against the coronavirus", "title": "contextual proximity", "to": "religious objections", "width": 0.75}, {"from": "new york\u0027s requirement that health care workers be vaccinated against the coronavirus", "title": "contextual proximity", "to": "supreme court\u0027s commitment to religious liberty", "width": 0.75}, {"from": "pelosi\u0027s taiwan visit", "title": "Caused the cutting off of contacts with the United States on vital issues, including military matters and crucial climate cooperation.", "to": "hostile reaction from china\u0027s communist government", "width": 1.0}, {"from": "people", "title": "contextual proximity", "to": "queer activists", "width": 0.5}, {"from": "people", "title": "contextual proximity", "to": "rights to same-sex marriage and consensual sex are also...", "width": 0.5}, {"from": "people", "title": "contextual proximity", "to": "roe v. wade", "width": 0.5}, {"from": "people", "title": "contextual proximity", "to": "safe, accessible abortion care for all", "width": 0.5}, {"from": "people", "title": "contextual proximity", "to": "supreme court", "width": 1.0}, {"from": "people", "title": "flooded the steps of the Supreme Court in Washington, D.C.,contextual proximity", "to": "washington, d.c.", "width": 1.5}, {"from": "president biden\u0027s", "title": "includes key portions of President Biden\u0027s domestic agenda.", "to": "domestic agenda", "width": 1.0}, {"from": "president joe biden", "title": "proposed a new rule to address excessive heat in the workplace, which would protect an estimated 36 million U.S. workers from injuries related to heat exposure on the job, establishing the first major federal safety standard of its kind.", "to": "federal safety standard", "width": 1.0}, {"from": "president joe biden", "title": "contextual proximity", "to": "shifting and at times contradictory information", "width": 0.5}, {"from": "president joe biden", "title": "contextual proximity", "to": "texas school shooting", "width": 1.0}, {"from": "president-elect donald trump", "title": "contextual proximity", "to": "trump", "width": 1.25}, {"from": "president-elect donald trump", "title": "Accused Trump of being Elon Musk\u0027s \u0027puppet\u0027", "to": "rep. daniel goldman", "width": 1.0}, {"from": "pro-kremlin views", "title": "contextual proximity", "to": "russia", "width": 0.75}, {"from": "production", "title": "Production at the Tesla Gigafactory was halted due to the suspected arson attack carried out by a left-wing extremist group called Vulkangruppe Tesla Abschalten.,contextual proximity", "to": "tesla gigafactory", "width": 1.5}, {"from": "project veritas", "title": "contextual proximity", "to": "twitter", "width": 1.0}, {"from": "project veritas", "title": "contextual proximity", "to": "twitter\u0027s policies", "width": 0.5}, {"from": "project veritas", "title": "contextual proximity", "to": "video", "width": 0.5}, {"from": "protection from deportation", "title": "The Biden administration\u0027s executive action would shield about 500,000 immigrants from deportation.", "to": "undocumented spouses of american citizens", "width": 1.0}, {"from": "queer activists", "title": "within hours of Politico\u2019s reporting on a leaked draft Supreme Court opinion", "to": "rights to same-sex marriage and consensual sex are also...", "width": 1.0}, {"from": "queer activists", "title": "contextual proximity", "to": "supreme court", "width": 0.5}, {"from": "reopening economy", "title": "President Trump is pushing for the reopening of the economy.", "to": "trump, president", "width": 1.0}, {"from": "rep. daniel goldman", "title": "contextual proximity", "to": "trump", "width": 1.25}, {"from": "republican glenn youngkin", "title": "contextual proximity", "to": "republicans appeared to sweep the other statewide races", "width": 0.5}, {"from": "republican glenn youngkin", "title": "Chose Republican Glenn Youngkin as their next governor, a dramatic reversal for a state that had appeared solidly Democratic in recent years and a significant loss for President Biden and the party\u2019s establishment.,contextual proximity", "to": "virginia voters", "width": 1.5}, {"from": "republican glenn youngkin", "title": "contextual proximity", "to": "winsome sears", "width": 0.5}, {"from": "republican lawmakers", "title": "contextual proximity", "to": "u.s.-funded research in china", "width": 0.5}, {"from": "republican-led subcommittee", "title": "contextual proximity", "to": "u.s.-funded research in china", "width": 0.5}, {"from": "republicans appeared to sweep the other statewide races", "title": "won for lieutenant governor...", "to": "winsome sears", "width": 1.0}, {"from": "rights to same-sex marriage and consensual sex are also...", "title": "contextual proximity", "to": "supreme court", "width": 0.5}, {"from": "roe v. wade", "title": "protest against the court\u2019s apparent plan to overturn the landmark abortion protections of Roe v. Wade", "to": "safe, accessible abortion care for all", "width": 1.0}, {"from": "roe v. wade", "title": "contextual proximity", "to": "supreme court", "width": 0.5}, {"from": "rt (formerly known as russia today)", "title": "contextual proximity", "to": "russia", "width": 0.75}, {"from": "russia", "title": "contextual proximity", "to": "strategic failure", "width": 0.5}, {"from": "russia", "title": "contextual proximity", "to": "u.s. intelligence agencies", "width": 0.5}, {"from": "russia", "title": "contextual proximity", "to": "ukraine crisis", "width": 0.75}, {"from": "russia", "title": "contextual proximity", "to": "vladimir putin", "width": 0.5}, {"from": "russia\u0027s state-run media", "title": "contextual proximity", "to": "u.s. intelligence agencies", "width": 0.5}, {"from": "russia\u0027s state-run media", "title": "contextual proximity", "to": "vladimir putin", "width": 0.5}, {"from": "safe, accessible abortion care for all", "title": "contextual proximity", "to": "supreme court", "width": 0.5}, {"from": "second whistleblower", "title": "contextual proximity", "to": "whistleblower", "width": 0.5}, {"from": "senate minority leader mitch mcconnell ", "title": "Mitch McConnell was among the Republicans who voted yes.", "to": "voted yes", "width": 1.0}, {"from": "shifting and at times contradictory information", "title": "contextual proximity", "to": "texas school shooting", "width": 0.5}, {"from": "strategic failure", "title": "Highlighted a larger strategic failure, one that extends beyond this administration.,contextual proximity", "to": "ukraine crisis", "width": 2.5}, {"from": "strategic failure", "title": "contextual proximity", "to": "united states", "width": 0.5}, {"from": "supreme court", "title": "contextual proximity", "to": "washington, d.c.", "width": 0.5}, {"from": "trump\u0027s conspiratorial messages and insults based on race", "title": "Allies of Trump see his conspiratorial messages and insults based on race as anything but productive.", "to": "unproductive", "width": 1.0}, {"from": "trump\u0027s inability to stay on message and stay away from conspiracy theories", "title": "Donors and allies of former President Donald Trump are concerned that his inability to stay on message and stay away from conspiracy theories is stunting his chances of targeting the momentum of Vice President Kamala Harris.", "to": "targeting momentum of vice president kamala harris", "width": 1.0}, {"from": "trusted...", "title": "contextual proximity", "to": "u.s.-funded research in china", "width": 0.5}, {"from": "twitter", "title": "contextual proximity", "to": "twitter\u0027s policies", "width": 0.5}, {"from": "twitter", "title": "contextual proximity", "to": "video", "width": 0.5}, {"from": "u.s. evacuations from afghanistan in 2021", "title": "The U.S. acknowledged that earlier evacuations should have begun during the U.S. evacuations from Afghanistan in 2021, according to a newly released National Security Council document outlining key moments. The Afghanistan withdrawal changed the U.S. protocol on evacuations during other global conflicts, per the NSC\u0027s summary of the Biden administration\u0027s review of the withdrawal released Thursday.", "to": "earlier evacuations", "width": 1.0}, {"from": "u.s. intelligence agencies", "title": "contextual proximity", "to": "vladimir putin", "width": 1.0}, {"from": "ukraine crisis", "title": "contextual proximity", "to": "united states", "width": 0.75}, {"from": "washington", "title": "The Senate voted to approve a roughly $1 trillion bill to revamp the nation\u0027s infrastructure on Tuesday in Washington.", "to": "infrastructure", "width": 1.0}, {"from": "white house", "title": "In response to China\u0027s hostile reaction to Pelosi\u0027s Taiwan visit and military exercises off Taiwan.", "to": "summoning...", "width": 1.0}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.015,
+            "damping": 0.4,
+            "gravitationalConstant": -31,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

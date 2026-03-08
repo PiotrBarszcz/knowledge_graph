@@ -1,0 +1,3 @@
+Google announced Tuesday it will be restricting its new artificial intelligence chatbot Gemini from answering election-related questions globally.
+“Out of an abundance of caution on such an important topic, we have begun to roll out restrictions on the types of election-related queries for which Gemini will return responses,” the company wrote in a blog post on Tuesday.
+The announcement isn’t just prompted by concerns in the United States but also extends to international apprehensions over how AI could affect foreign elections taking place this year in over 50 countries. The company added that it has already...
